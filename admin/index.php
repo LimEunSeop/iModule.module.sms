@@ -7,8 +7,8 @@
  * @file /modules/sms/admin/index.php
  * @author Arzz (arzz@arzz.com)
  * @license GPLv3
- * @version 3.0.0
- * @modified 2019. 2. 6.
+ * @version 3.1.0
+ * @modified 2019. 9. 20.
  */
 if (defined('__IM__') == false) exit;
 ?>
@@ -21,11 +21,12 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 		items:[
 			new Ext.grid.Panel({
 				id:"ModuleSmsSendList",
+				iconCls:"fa fa-bars",
 				title:Sms.getText("admin/list/title"),
 				border:false,
 				tbar:[
 					new Ext.Button({
-						text:"전체기간",
+						text:Sms.getText("admin/list/all_period"),
 						iconCls:"fa fa fa-check-square-o",
 						pressed:true,
 						enableToggle:true,
@@ -79,10 +80,15 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 					"-",
 					new Ext.form.ComboBox({
 						id:"ModuleSmsSendListKeycode",
-						visibility:"calendar,application",
 						store:new Ext.data.ArrayStore({
 							fields:["display","value"],
-							data:[["발송자","sender"],["발송번호","sender_number"],["수신자","receiver"],["수신번호","receiver_number"],["내용","message"]]
+							data:(function() {
+								var datas = [];
+								for (var field in Sms.getText("admin/list/keycodes")) {
+									datas.push([Sms.getText("admin/list/keycodes/"+field),field]);
+								}
+								return datas;
+							})()
 						}),
 						width:100,
 						editable:false,
@@ -90,29 +96,21 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 						valueField:"value",
 						value:"message"
 					}),
-					new Ext.form.TextField({
-						id:"ModuleSmsSendListKeyword",
-						emptyText:"검색어",
-						width:140
-					}),
-					new Ext.Button({
-						iconCls:"mi mi-search",
-						handler:function() {
-							Ext.getCmp("ModuleSmsSendList").getStore().getProxy().setExtraParam("keycode",Ext.getCmp("ModuleSmsSendListKeycode").getValue());
-							Ext.getCmp("ModuleSmsSendList").getStore().getProxy().setExtraParam("keyword",Ext.getCmp("ModuleSmsSendListKeyword").getValue());
-							Ext.getCmp("ModuleSmsSendList").getStore().loadPage(1);
-						}
+					Admin.searchField("ModuleSmsSendListKeyword",180,Sms.getText("admin/list/keyword"),function(keyword) {
+						Ext.getCmp("ModuleSmsSendList").getStore().getProxy().setExtraParam("keycode",Ext.getCmp("ModuleSmsSendListKeycode").getValue());
+						Ext.getCmp("ModuleSmsSendList").getStore().getProxy().setExtraParam("keyword",Ext.getCmp("ModuleSmsSendListKeyword").getValue());
+						Ext.getCmp("ModuleSmsSendList").getStore().loadPage(1);
 					}),
 					"-",
 					new Ext.Button({
-						text:Sms.getText("admin/list/addBoard"),
-						iconCls:"fa fa-plus",
+						text:Sms.getText("admin/list/write"),
+						iconCls:"mi mi-plus",
 						handler:function() {
 							Sms.write();
 						}
 					}),
 					new Ext.Button({
-						text:"선택기록삭제",
+						text:Sms.getText("admin/list/delete"),
 						iconCls:"mi mi-trash",
 						handler:function() {
 							Sms.list.delete();
@@ -130,7 +128,7 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 					sorters:[{property:"reg_date",direction:"DESC"}],
 					autoLoad:true,
 					pageSize:50,
-					fields:["bid","title","nickname","exp","point","reg_date","last_login","display_url","count","image"],
+					fields:["receiver","receiver_name","sender","sender_name","message","reg_date","status"],
 					listeners:{
 						load:function(store,records,success,e) {
 							if (success == false) {
@@ -212,7 +210,7 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 					itemcontextmenu:function(grid,record,item,index,e) {
 						var menu = new Ext.menu.Menu();
 						
-						menu.add('<div class="x-menu-title">'+record.data.receiver_name+'('+record.data.receiver+')</div>');
+						menu.addTitle(record.data.receiver_name+"("+record.data.receiver+")");
 						
 						menu.add({
 							iconCls:"xi xi-form",
@@ -243,8 +241,9 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 				border:false,
 				tbar:[
 					new Ext.Button({
+						id:"ModuleSmsAdminListAddButton",
 						text:"관리자 추가",
-						iconCls:"xi xi-form",
+						iconCls:"mi mi-plus",
 						handler:function() {
 							Member.search(function(member) {
 								Ext.Msg.show({title:Admin.getText("alert/info"),msg:member.name+"님을 관리자로 추가하시겠습니까?",buttons:Ext.Msg.OKCANCEL,icon:Ext.Msg.QUESTION,fn:function(button) {
@@ -295,7 +294,7 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 					text:"이름",
 					dataIndex:"name",
 					sortable:true,
-					width:80
+					width:100
 				},{
 					text:"이메일",
 					dataIndex:"email",
@@ -325,7 +324,7 @@ Ext.onReady(function () { Ext.getCmp("iModuleAdminPanel").add(
 						
 						menu.add({
 							iconCls:"xi xi-trash",
-							text:"삭제",
+							text:"관리자 삭제",
 							handler:function() {
 								Ext.Msg.show({title:Admin.getText("alert/info"),msg:"관리자를 삭제하시겠습니까?<br>해당 관리자는 더이상 관리할 수 없습니다.",buttons:Ext.Msg.OKCANCEL,icon:Ext.Msg.QUESTION,fn:function(button) {
 									if (button == "ok") {
